@@ -1,0 +1,602 @@
+{
+  "title": "Mental Health Crisis Monitor - Overview",
+  "description": "Comprehensive dashboard for monitoring mental health support chatbot with real-time crisis detection, LLM performance, and system health metrics",
+  "layout_type": "ordered",
+  "widgets": [
+    {
+      "definition": {
+        "type": "note",
+        "content": "# 🚨 Mental Health Crisis Detection System\n\n**Mission**: Provide real-time monitoring and crisis detection for mental health support conversations powered by Vertex AI Gemini.\n\n**Key Features**:\n- Multi-signal crisis detection\n- Real-time risk scoring\n- Automatic escalation protocols\n- LLM cost & performance tracking\n- 24/7 operational monitoring\n\n**Emergency Contacts**:\n- Crisis Team: [Contact]\n- On-Call Engineer: [Contact]\n- System Status: [Link]",
+        "background_color": "vivid_purple",
+        "font_size": "14",
+        "text_align": "left",
+        "show_tick": false,
+        "tick_pos": "50%",
+        "tick_edge": "left"
+      }
+    },
+    {
+      "definition": {
+        "type": "group",
+        "title": "🚨 CRISIS ALERTS - IMMEDIATE ATTENTION REQUIRED",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "definition": {
+              "type": "alert_value",
+              "alert_id": "crisis_high_risk_monitor",
+              "title": "HIGH Risk Crisis Active",
+              "title_size": "16",
+              "title_align": "left",
+              "precision": 2
+            }
+          },
+          {
+            "definition": {
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "sum:crisis.high_risk_detected{*}.as_count()",
+                  "aggregator": "sum",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "value": 0,
+                      "palette": "white_on_red"
+                    },
+                    {
+                      "comparator": "<=",
+                      "value": 0,
+                      "palette": "white_on_green"
+                    }
+                  ]
+                }
+              ],
+              "title": "Active HIGH Risk Sessions (Last Hour)",
+              "title_size": "16",
+              "title_align": "left",
+              "autoscale": true,
+              "precision": 0
+            }
+          },
+          {
+            "definition": {
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "avg:crisis.score{*}",
+                  "display_type": "line",
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "thick"
+                  }
+                }
+              ],
+              "title": "Real-Time Crisis Score Trend",
+              "show_legend": true,
+              "legend_size": "0",
+              "yaxis": {
+                "min": "0",
+                "max": "1",
+                "label": "Crisis Score",
+                "scale": "linear"
+              },
+              "markers": [
+                {
+                  "value": "y = 0.7",
+                  "display_type": "error dashed",
+                  "label": "HIGH RISK"
+                },
+                {
+                  "value": "y = 0.4",
+                  "display_type": "warning dashed",
+                  "label": "MEDIUM RISK"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "definition": {
+        "type": "group",
+        "title": "📊 CRISIS DETECTION ANALYTICS",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "definition": {
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:crisis.risk_level{risk_level:high}.as_count()",
+                  "display_type": "bars",
+                  "style": {
+                    "palette": "red"
+                  }
+                },
+                {
+                  "q": "sum:crisis.risk_level{risk_level:medium}.as_count()",
+                  "display_type": "bars",
+                  "style": {
+                    "palette": "orange"
+                  }
+                },
+                {
+                  "q": "sum:crisis.risk_level{risk_level:low}.as_count()",
+                  "display_type": "bars",
+                  "style": {
+                    "palette": "green"
+                  }
+                }
+              ],
+              "title": "Risk Level Distribution Over Time",
+              "show_legend": true
+            }
+          },
+          {
+            "definition": {
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "avg:crisis.score{risk_level:high}",
+                  "aggregator": "avg",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">=",
+                      "value": 0.7,
+                      "palette": "white_on_red"
+                    }
+                  ]
+                }
+              ],
+              "title": "Average Crisis Score (HIGH Risk)",
+              "precision": 3,
+              "autoscale": true
+            }
+          },
+          {
+            "definition": {
+              "type": "toplist",
+              "requests": [
+                {
+                  "q": "top(avg:crisis.score{*} by {session_id}, 10, 'mean', 'desc')"
+                }
+              ],
+              "title": "Top 10 Highest Crisis Scores (Current Sessions)"
+            }
+          },
+          {
+            "definition": {
+              "type": "heatmap",
+              "requests": [
+                {
+                  "q": "avg:crisis.score{*} by {hour}"
+                }
+              ],
+              "title": "Crisis Activity Heatmap (by Hour of Day)",
+              "yaxis": {
+                "label": "Hour of Day (0-23)"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "definition": {
+        "type": "group",
+        "title": "🤖 LLM PERFORMANCE & COSTS",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "definition": {
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "avg:llm.latency{*}",
+                  "aggregator": "avg",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "value": 3000,
+                      "palette": "white_on_red"
+                    },
+                    {
+                      "comparator": ">",
+                      "value": 2000,
+                      "palette": "white_on_yellow"
+                    },
+                    {
+                      "comparator": "<=",
+                      "value": 2000,
+                      "palette": "white_on_green"
+                    }
+                  ]
+                }
+              ],
+              "title": "Average LLM Latency (ms)",
+              "precision": 0,
+              "autoscale": true
+            }
+          },
+          {
+            "definition": {
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "avg:llm.latency{*}",
+                  "display_type": "line"
+                },
+                {
+                  "q": "avg:llm.latency{*}.rollup(avg, 60)",
+                  "display_type": "line",
+                  "style": {
+                    "line_type": "dashed"
+                  }
+                }
+              ],
+              "title": "LLM Response Latency (Real-time vs 1-min avg)",
+              "markers": [
+                {
+                  "value": "y = 2000",
+                  "display_type": "warning dashed",
+                  "label": "Warning Threshold"
+                },
+                {
+                  "value": "y = 3000",
+                  "display_type": "error dashed",
+                  "label": "Critical Threshold"
+                }
+              ],
+              "yaxis": {
+                "label": "Latency (ms)"
+              }
+            }
+          },
+          {
+            "definition": {
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:llm.tokens.input{*}.as_count()",
+                  "display_type": "area",
+                  "style": {
+                    "palette": "blue"
+                  }
+                },
+                {
+                  "q": "sum:llm.tokens.output{*}.as_count()",
+                  "display_type": "area",
+                  "style": {
+                    "palette": "purple"
+                  }
+                }
+              ],
+              "title": "Token Usage (Input vs Output)",
+              "show_legend": true
+            }
+          },
+          {
+            "definition": {
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "sum:llm.cost{*}",
+                  "aggregator": "sum"
+                }
+              ],
+              "title": "Total LLM Cost (Last Hour)",
+              "precision": 4,
+              "autoscale": false,
+              "custom_unit": "$"
+            }
+          },
+          {
+            "definition": {
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:llm.cost{*}.as_rate()",
+                  "display_type": "bars",
+                  "style": {
+                    "palette": "green"
+                  }
+                }
+              ],
+              "title": "Cost per Minute",
+              "yaxis": {
+                "label": "$ per minute"
+              }
+            }
+          },
+          {
+            "definition": {
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "avg:llm.cost{*}/avg:llm.requests{*}",
+                  "aggregator": "avg"
+                }
+              ],
+              "title": "Average Cost per Request",
+              "precision": 6,
+              "custom_unit": "$"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "definition": {
+        "type": "group",
+        "title": "💬 SESSION & CONVERSATION METRICS",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "definition": {
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "sum:sessions.created{*}.as_count()"
+                }
+              ],
+              "title": "Active Sessions (Last Hour)",
+              "precision": 0
+            }
+          },
+          {
+            "definition": {
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:sessions.created{*}.as_count().rollup(sum, 300)",
+                  "display_type": "bars"
+                }
+              ],
+              "title": "New Sessions Over Time (5-min intervals)"
+            }
+          },
+          {
+            "definition": {
+              "type": "distribution",
+              "requests": [
+                {
+                  "q": "avg:session.duration{*}"
+                }
+              ],
+              "title": "Session Duration Distribution",
+              "xaxis": {
+                "label": "Duration (minutes)"
+              }
+            }
+          },
+          {
+            "definition": {
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "avg:session.message_count{*}",
+                  "aggregator": "avg"
+                }
+              ],
+              "title": "Avg Messages per Session",
+              "precision": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "definition": {
+        "type": "group",
+        "title": "🏥 SYSTEM HEALTH & RELIABILITY",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "definition": {
+              "type": "check_status",
+              "check": "service.up",
+              "grouping": "cluster",
+              "group_by": ["service:mental-health-bot"],
+              "tags": ["*"],
+              "title": "Service Health Check"
+            }
+          },
+          {
+            "definition": {
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "sum:errors.chat_processing{*}.as_count()",
+                  "aggregator": "sum",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "value": 10,
+                      "palette": "white_on_red"
+                    },
+                    {
+                      "comparator": ">",
+                      "value": 5,
+                      "palette": "white_on_yellow"
+                    },
+                    {
+                      "comparator": "<=",
+                      "value": 5,
+                      "palette": "white_on_green"
+                    }
+                  ]
+                }
+              ],
+              "title": "Error Count (Last 5 min)",
+              "precision": 0
+            }
+          },
+          {
+            "definition": {
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:errors.chat_processing{*}.as_rate()",
+                  "display_type": "bars",
+                  "style": {
+                    "palette": "red"
+                  }
+                }
+              ],
+              "title": "Error Rate Over Time",
+              "yaxis": {
+                "label": "Errors per second"
+              }
+            }
+          },
+          {
+            "definition": {
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "avg:request.latency{*}",
+                  "display_type": "line"
+                },
+                {
+                  "q": "max:request.latency{*}",
+                  "display_type": "line",
+                  "style": {
+                    "line_type": "dashed"
+                  }
+                }
+              ],
+              "title": "Request Latency (Avg vs Max)",
+              "yaxis": {
+                "label": "Latency (ms)"
+              }
+            }
+          },
+          {
+            "definition": {
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "(sum:llm.requests{status:success}.as_count()/sum:llm.requests{*}.as_count())*100",
+                  "aggregator": "avg",
+                  "conditional_formats": [
+                    {
+                      "comparator": ">=",
+                      "value": 99.5,
+                      "palette": "white_on_green"
+                    },
+                    {
+                      "comparator": "<",
+                      "value": 99.5,
+                      "palette": "white_on_yellow"
+                    },
+                    {
+                      "comparator": "<",
+                      "value": 99,
+                      "palette": "white_on_red"
+                    }
+                  ]
+                }
+              ],
+              "title": "Success Rate",
+              "precision": 2,
+              "custom_unit": "%"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "definition": {
+        "type": "group",
+        "title": "📋 SLO STATUS",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "definition": {
+              "type": "slo",
+              "slo_id": "crisis_response_time_slo",
+              "title": "Crisis Response Time SLO",
+              "view_type": "detail",
+              "time_windows": ["7d", "30d"],
+              "show_error_budget": true
+            }
+          },
+          {
+            "definition": {
+              "type": "slo",
+              "slo_id": "crisis_detection_accuracy_slo",
+              "title": "Crisis Detection Accuracy SLO",
+              "view_type": "detail",
+              "time_windows": ["7d", "30d"],
+              "show_error_budget": true
+            }
+          },
+          {
+            "definition": {
+              "type": "slo",
+              "slo_id": "availability_slo",
+              "title": "Application Availability SLO",
+              "view_type": "detail",
+              "time_windows": ["7d", "30d"],
+              "show_error_budget": true
+            }
+          },
+          {
+            "definition": {
+              "type": "slo_list",
+              "title": "All SLOs Summary"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "definition": {
+        "type": "group",
+        "title": "📝 INCIDENT MANAGEMENT",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "definition": {
+              "type": "manage_status",
+              "title": "Active Cases (Crisis Incidents)",
+              "display_format": "countsAndList",
+              "color_preference": "background",
+              "hide_zero_counts": true,
+              "query": "priority:p1 OR priority:p2",
+              "sort": "status,asc",
+              "count": 50,
+              "start": 0
+            }
+          },
+          {
+            "definition": {
+              "type": "note",
+              "content": "## Quick Actions\n\n- [View All Crisis Cases](https://app.datadoghq.com/cases?query=crisis)\n- [Review High-Risk Sessions](https://app.datadoghq.com/logs?query=risk_level:HIGH)\n- [Crisis Response Runbook](https://docs.example.com/runbook)\n- [Escalation Procedures](https://docs.example.com/escalation)\n\n### On-Call Contacts\n- **Crisis Team Lead**: [Contact]\n- **AI Safety Engineer**: [Contact]\n- **Mental Health Advisor**: [Contact]",
+              "background_color": "blue",
+              "font_size": "14",
+              "text_align": "left"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "template_variables": [
+    {
+      "name": "service",
+      "default": "mental-health-bot",
+      "prefix": "service"
+    },
+    {
+      "name": "risk_level",
+      "default": "*",
+      "prefix": "risk_level"
+    }
+  ],
+  "notify_list": [],
+  "reflow_type": "auto"
+}

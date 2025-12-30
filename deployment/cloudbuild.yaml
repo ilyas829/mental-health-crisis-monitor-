@@ -1,0 +1,53 @@
+# === cloudbuild.yaml (Google Cloud Build) ===
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/mental-health-bot:$COMMIT_SHA', '.']
+  
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/mental-health-bot:$COMMIT_SHA']
+  
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'mental-health-bot'
+      - '--image=gcr.io/$PROJECT_ID/mental-health-bot:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+      - '--memory=2Gi'
+      - '--cpu=2'
+      - '--min-instances=1'
+      - '--max-instances=10'
+      - '--set-env-vars=DD_API_KEY=${_DD_API_KEY},DD_APP_KEY=${_DD_APP_KEY},DD_SERVICE=mental-health-bot,DD_ENV=production'
+      - '--set-secrets=GOOGLE_APPLICATION_CREDENTIALS=vertex-ai-key:latest'
+
+images:
+  - 'gcr.io/$PROJECT_ID/mental-health-bot:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _DD_API_KEY: 'your-datadog-api-key'
+  _DD_APP_KEY: 'your-datadog-app-key'
+
+# = .env.example ===
+# # Datadog Configuration
+# DD_API_KEY=73a0db2df1e153509fad7b2c2e4b2bba
+# DD_APP_KEY=d27f79c4917caa9fa760f73f192fd855c64587a3
+# DD_SITE="datadoghq.eu"
+
+# # Google Cloud Configuration
+# GOOGLE_CLOUD_PROJECT="mental-health-monitor"
+# GOOGLE_CLOUD_LOCATION=us-central1
+# GOOGLE_APPLICATION_CREDENTIALS="D:\LLM-Challenge-GCP\mental-health-crisis-monitor\credentials.json"
+
+# # Application Configuration
+# PORT=8080
+# ENVIRONMENT=production

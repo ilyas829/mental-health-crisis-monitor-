@@ -1,0 +1,150 @@
+{
+  "monitors": [
+    {
+      "name": "🚨 HIGH RISK Crisis Detected - Immediate Response Required",
+      "type": "metric alert",
+      "query": "avg(last_5m):avg:crisis.risk_level{*} >= 3",
+      "message": "# CRITICAL: High-Risk Crisis Detected\n\n## Alert Details\n**Severity**: P1 - CRITICAL\n**Service**: Mental Health Crisis Monitor\n**Risk Level**: HIGH (Score >= 0.7)\n\n## Immediate Actions Required\n\n### Within 5 Minutes:\n- [ ] Review active session in Datadog: [Session Logs](https://app.datadoghq.com/logs?query=service:mental-health-bot%20risk_level:HIGH)\n- [ ] Verify crisis resources (988 Lifeline) were provided\n- [ ] Check if user is still engaged in conversation\n- [ ] Escalate to on-call mental health professional (if available)\n\n### Within 15 Minutes:\n- [ ] Document initial assessment in incident case\n- [ ] Review conversation transcript for context\n- [ ] Determine if emergency services notification needed\n- [ ] Coordinate with crisis response team\n\n## Context\n{{#is_alert}}\nA conversation has been flagged with HIGH risk indicators. This suggests immediate danger and requires human intervention.\n{{/is_alert}}\n\n## Quick Links\n- [Crisis Response Runbook](https://docs.example.com/crisis-runbook)\n- [Datadog Cases](https://app.datadoghq.com/cases)\n- [Session Dashboard](https://app.datadoghq.com/dashboard/mental-health-overview)\n\n## Emergency Contacts\n- On-call Mental Health Professional: [Contact Info]\n- Crisis Team Lead: [Contact Info]\n- System Administrator: [Contact Info]\n\n@pagerduty-crisis-team @slack-crisis-channel",
+      "tags": [
+        "service:mental-health-bot",
+        "priority:p1",
+        "team:crisis-response",
+        "alert_type:crisis"
+      ],
+      "priority": 1,
+      "options": {
+        "thresholds": {
+          "critical": 3,
+          "warning": 2
+        },
+        "notify_audit": true,
+        "require_full_window": false,
+        "notify_no_data": false,
+        "renotify_interval": 5,
+        "escalation_message": "ESCALATION: High-risk crisis still active after 10 minutes. Immediate human intervention required.",
+        "include_tags": true
+      }
+    },
+    {
+      "name": "⚠️ Elevated Crisis Scores - Enhanced Monitoring",
+      "type": "metric alert",
+      "query": "avg(last_10m):avg:crisis.score{*} >= 0.4",
+      "message": "# Medium Risk: Elevated Crisis Indicators\n\n## Alert Summary\n**Severity**: P2 - HIGH\n**Service**: Mental Health Crisis Monitor\n**Risk Level**: MEDIUM (Score 0.4-0.7)\n\n## Recommended Actions\n\n### Immediate (Within 30 minutes):\n- [ ] Review conversation patterns in [Session Logs](https://app.datadoghq.com/logs?query=service:mental-health-bot%20crisis.score:>=0.4)\n- [ ] Monitor for escalation to HIGH risk\n- [ ] Verify appropriate support resources provided\n- [ ] Check conversation engagement patterns\n\n### Follow-up:\n- [ ] Track session for next 2 hours\n- [ ] Document any notable patterns\n- [ ] Consider proactive outreach if patterns persist\n\n## Context\nMultiple conversations showing elevated distress signals. While not immediately critical, this requires enhanced monitoring and may escalate.\n\n## Trend Analysis\n{{#is_alert}}\nCrisis scores have been elevated for the past 10 minutes, indicating sustained distress across active sessions.\n{{/is_alert}}\n\n@slack-monitoring-channel",
+      "tags": [
+        "service:mental-health-bot",
+        "priority:p2",
+        "team:monitoring",
+        "alert_type:elevated_risk"
+      ],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 0.6,
+          "warning": 0.4
+        },
+        "notify_audit": true,
+        "require_full_window": true,
+        "notify_no_data": false,
+        "renotify_interval": 30,
+        "include_tags": true
+      }
+    },
+    {
+      "name": "💰 Unusual Cost Spike - Token Usage Anomaly",
+      "type": "anomaly",
+      "query": "avg(last_1h):anomalies(avg:llm.cost{*}, 'agile', 2, direction='above', interval=60, alert_window='last_15m', count_default_zero='true') >= 1",
+      "message": "# Cost Anomaly Detected\n\n## Alert Details\n**Severity**: P3 - MEDIUM\n**Service**: Mental Health Crisis Monitor - LLM Operations\n**Issue**: Unusual increase in token usage and costs\n\n## Investigation Steps\n\n1. **Check Current Spend**:\n   - Review [Cost Dashboard](https://app.datadoghq.com/dashboard/llm-costs)\n   - Compare to historical baseline\n   - Identify which sessions are driving costs\n\n2. **Analyze Usage Patterns**:\n   - Long conversations: Check for stuck sessions\n   - Repetitive calls: Look for retry loops\n   - Model selection: Verify Flash vs Pro usage\n\n3. **Potential Causes**:\n   - Unusually long crisis conversations (expected)\n   - API retry storms (needs investigation)\n   - Model selection issues (needs investigation)\n   - Attack/abuse attempt (needs investigation)\n\n## Current Metrics\n- **Average Cost/Session**: {{value}}\n- **Expected Range**: $0.001 - $0.05\n- **Deviation**: {{threshold}}σ from baseline\n\n## Immediate Actions\n- [ ] Review active sessions with high token counts\n- [ ] Check for API errors causing retries\n- [ ] Verify rate limiting is working\n- [ ] Assess if cost increase is crisis-related (acceptable)\n\n@slack-engineering-channel",
+      "tags": [
+        "service:mental-health-bot",
+        "priority:p3",
+        "team:engineering",
+        "alert_type:cost_anomaly"
+      ],
+      "priority": 3,
+      "options": {
+        "thresholds": {
+          "critical": 1,
+          "critical_recovery": 0
+        },
+        "notify_audit": false,
+        "require_full_window": false,
+        "notify_no_data": false,
+        "renotify_interval": 60
+      }
+    },
+    {
+      "name": "⏱️ High LLM Latency - User Experience Degradation",
+      "type": "metric alert",
+      "query": "avg(last_5m):avg:llm.latency{*} > 3000",
+      "message": "# Performance Degradation: High LLM Latency\n\n## Alert Summary\n**Severity**: P2 - HIGH\n**Service**: Mental Health Crisis Monitor - LLM API\n**Issue**: Response times exceeding acceptable thresholds\n\n## Impact\nSlow responses during crisis conversations can:\n- Increase user distress and abandonment\n- Delay critical resource delivery\n- Reduce effectiveness of support\n\n## Current Status\n- **Average Latency**: {{value}}ms\n- **Threshold**: 3000ms (3 seconds)\n- **Duration**: {{last_triggered_at}}\n\n## Investigation\n\n### Check These Areas:\n1. **Vertex AI Status**: [Google Cloud Status](https://status.cloud.google.com/)\n2. **Network Issues**: Check Cloud Run logs\n3. **Model Performance**: Verify Gemini Flash is being used\n4. **Token Limits**: Check if hitting context window limits\n\n### Quick Fixes:\n- Restart application if stuck\n- Verify API quotas not exhausted\n- Check for retry storms\n- Consider temporary model switch if persistent\n\n## Remediation\n- [ ] Check Vertex AI service status\n- [ ] Review recent deployments\n- [ ] Analyze slow request traces in APM\n- [ ] Verify model selection logic\n- [ ] Check for network issues\n\n## Dashboards\n- [Performance Dashboard](https://app.datadoghq.com/dashboard/performance)\n- [APM Traces](https://app.datadoghq.com/apm/traces?query=service:mental-health-bot)\n\n@slack-engineering-channel @pagerduty-engineering",
+      "tags": [
+        "service:mental-health-bot",
+        "priority:p2",
+        "team:engineering",
+        "alert_type:performance"
+      ],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 3000,
+          "warning": 2000
+        },
+        "notify_audit": true,
+        "require_full_window": false,
+        "notify_no_data": false,
+        "renotify_interval": 15,
+        "include_tags": true
+      }
+    },
+    {
+      "name": "🔄 High Error Rate - Application Health",
+      "type": "metric alert",
+      "query": "sum(last_5m):sum:errors.chat_processing{*}.as_count() > 10",
+      "message": "# Application Error Rate Elevated\n\n## Alert Summary\n**Severity**: P2 - HIGH\n**Service**: Mental Health Crisis Monitor\n**Issue**: Increased error rate in chat processing\n\n## Impact Assessment\nErrors during crisis conversations can result in:\n- Failed crisis detection\n- Loss of user trust\n- Potential safety risks\n- User abandonment during critical moments\n\n## Current Status\n- **Error Count**: {{value}} in last 5 minutes\n- **Threshold**: 10 errors\n- **Error Rate**: Calculate from dashboard\n\n## Common Error Causes\n\n### 1. LLM API Issues\n- Vertex AI service disruption\n- API quota exhaustion\n- Authentication failures\n- Rate limiting\n\n### 2. Application Issues\n- Memory leaks\n- Connection pool exhaustion\n- Unhandled exceptions\n- Invalid input handling\n\n### 3. Infrastructure Issues\n- Cloud Run cold starts\n- Network connectivity\n- Datadog agent issues\n\n## Investigation Steps\n\n1. **Check Error Logs**:\n   ```\n   service:mental-health-bot status:error\n   ```\n   [View in Datadog](https://app.datadoghq.com/logs?query=service:mental-health-bot%20status:error)\n\n2. **Review Error Types**:\n   - API errors\n   - Validation errors\n   - Timeout errors\n   - Unknown errors\n\n3. **Check Dependencies**:\n   - Vertex AI status\n   - Datadog API connectivity\n   - Network health\n\n## Immediate Actions\n- [ ] Review error logs for patterns\n- [ ] Check dependency health\n- [ ] Verify recent deployments\n- [ ] Check resource utilization\n- [ ] Review trace data for failed requests\n\n## Fallback Procedures\nIf errors persist:\n1. Activate fallback response mode\n2. Ensure crisis resources still delivered\n3. Scale up application instances\n4. Consider temporary model switch\n\n@slack-engineering-channel @slack-on-call",
+      "tags": [
+        "service:mental-health-bot",
+        "priority:p2",
+        "team:engineering",
+        "alert_type:errors"
+      ],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 10,
+          "warning": 5
+        },
+        "notify_audit": true,
+        "require_full_window": false,
+        "notify_no_data": false,
+        "renotify_interval": 10,
+        "escalation_message": "Error rate still elevated after 10 minutes. Engineering lead intervention required.",
+        "include_tags": true
+      }
+    },
+    {
+      "name": "🌙 Late Night Crisis Activity - Behavioral Pattern",
+      "type": "metric alert",
+      "query": "sum(last_1h):sum:crisis.high_risk_detected{*}.as_count() > 3",
+      "message": "# Elevated Late-Night Crisis Activity\n\n## Alert Summary\n**Severity**: P2 - HIGH\n**Pattern**: Multiple high-risk crises during late night hours\n**Time Window**: {{last_triggered_at}}\n\n## Context\nResearch shows crisis risk increases during late night/early morning hours (11 PM - 5 AM) when:\n- Social support is less available\n- Isolation feelings intensify\n- Fatigue impacts judgment\n- Professional help is harder to access\n\n## Current Activity\n- **High-Risk Detections**: {{value}} in last hour\n- **Typical Baseline**: 0-1 per hour\n- **Time**: Late night / Early morning\n\n## Enhanced Monitoring Required\n\nDuring elevated late-night activity:\n\n1. **Staffing Considerations**:\n   - Ensure on-call coverage\n   - Consider activating backup responders\n   - Verify crisis resource availability\n\n2. **System Adjustments**:\n   - Lower detection thresholds temporarily\n   - Increase monitoring frequency\n   - Pre-emptively provide crisis resources\n\n3. **Pattern Analysis**:\n   - Track if this is a trend\n   - Identify if specific user segments affected\n   - Document for system improvements\n\n## Actions\n- [ ] Verify on-call team is available\n- [ ] Review all active late-night sessions\n- [ ] Check if pattern is recurring (weekly/monthly)\n- [ ] Consider temporary threshold adjustments\n- [ ] Document patterns for analysis\n\n## Resources\n- [Late Night Protocol](https://docs.example.com/late-night-protocol)\n- [Active Sessions Dashboard](https://app.datadoghq.com/dashboard/active-sessions)\n- [Crisis Pattern Analysis](https://app.datadoghq.com/notebook/crisis-patterns)\n\n@slack-crisis-team @slack-on-call",
+      "tags": [
+        "service:mental-health-bot",
+        "priority:p2",
+        "team:crisis-response",
+        "alert_type:behavioral_pattern",
+        "time:late_night"
+      ],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 3,
+          "warning": 2
+        },
+        "notify_audit": true,
+        "require_full_window": true,
+        "notify_no_data": false,
+        "renotify_interval": 60,
+        "include_tags": true
+      }
+    }
+  ]
+}
