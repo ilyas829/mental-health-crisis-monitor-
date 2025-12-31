@@ -1,5 +1,7 @@
 # Mental Health Crisis Detection & Monitoring System
 
+Working url of project [Mental health bot](https://mental-health-bot-nbkpdnq6yq-uc.a.run.app/)
+
 > An AI-powered mental health support chatbot with real-time crisis detection, powered by Vertex AI Gemini and monitored through Datadog's observability platform.
 
 ## 🎯 The Problem We're Solving
@@ -296,70 +298,6 @@ python traffic_generator/generate_scenarios.py --scenario high_risk_immediate
 | **Crisis Resource Delivery** | 100% for HIGH risk | Every high-risk conversation MUST receive crisis resources |
 | **Cost Efficiency** | 90% < $0.05/conv | Sustainable operations with Gemini Flash |
 
----
-
-## 🎥 3-Minute Video Walkthrough Script
-
-### Scene 1: Introduction (30 seconds)
-"Hi, I'm demonstrating a mental health crisis detection system that could save lives. Every 40 seconds, someone dies by suicide globally. People increasingly turn to AI chatbots for support, but current systems lack safety monitoring. Our solution uses Datadog's observability platform to detect crisis signals in real-time and automatically escalate to human responders."
-
-### Scene 2: System Overview (30 seconds)
-[Show dashboard]
-"This Datadog dashboard monitors our Vertex AI-powered chatbot in real-time. We track three critical areas: crisis detection metrics, LLM performance, and system health. The unique innovation is our multi-signal detection approach—we don't just look at keywords, we analyze behavioral patterns like late-night usage, rapid message frequency, and conversation escalation."
-
-### Scene 3: Crisis Detection Demo (60 seconds)
-[Run traffic generator]
-"Let me demonstrate. I'm simulating a high-risk conversation with suicide ideation. Watch what happens: 
-1. The crisis score immediately spikes to 0.8
-2. Risk level turns RED for HIGH risk
-3. A Datadog event is created automatically
-4. Most importantly, a Case opens with full context
-5. The system provided 988 Suicide Lifeline resources to the user
-All of this happens in under 2 seconds—fast enough to maintain user engagement."
-
-[Show Datadog Case]
-"This Case gives our crisis team everything they need: conversation transcript, risk breakdown, behavioral flags, and an action item checklist. This is what sets us apart—actionable intelligence with context."
-
-### Scene 4: Innovation & Impact (60 seconds)
-[Show monitors and SLOs]
-"Our six detection rules cover everything from immediate crises to cost anomalies. Each has clear thresholds and actions. Our SLOs prioritize human safety: 100% crisis resource delivery for high-risk conversations is non-negotiable.
-
-The technical innovation is our three-tier detection system combining NLP, behavioral analysis, and operational monitoring. But the real innovation is the observability strategy: we built a system that not only detects crises but provides the context AI engineers need to continuously improve safety.
-
-And here's the best part: this entire system runs on Google Cloud's free tier and Datadog's trial. It's accessible to any organization wanting to build safer AI applications."
-
----
-
-## 💡 What Makes This Unique
-
-### 1. **Multi-Signal Detection**
-We don't just look for keywords. Our system analyzes:
-- Linguistic patterns (what they say)
-- Behavioral patterns (when/how they say it)
-- Conversation dynamics (how things escalate)
-- Operational metrics (system performance)
-
-### 2. **Actionable Intelligence**
-Every alert includes the context needed to act immediately:
-- Why the system flagged this conversation
-- What patterns led to the decision
-- What specific actions to take
-- What resources have been provided
-
-### 3. **Cost-Aware Safety**
-We track LLM costs while maintaining safety. Crisis conversations naturally use more tokens—that's okay. But we detect when costs spike for the wrong reasons (bugs, attacks).
-
-### 4. **Fully Free Deployment**
-- Google Cloud Run: 2M requests/month free
-- Vertex AI: $0.01875/1M tokens (Gemini Flash)
-- Datadog: 30-day trial (extendable)
-- Total cost for moderate usage: < $10/month
-
----
-
-## 📊 Expected Results
-
-After running the traffic generator through all scenarios:
 
 ### Crisis Detection Performance
 - **HIGH risk scenarios**: 100% detection rate
