@@ -1,0 +1,189 @@
+{
+  "slos": [
+    {
+      "name": "Crisis Response Time - P99 under 2 seconds",
+      "description": "99% of crisis conversations must receive initial response within 2 seconds to maintain user engagement during critical moments",
+      "type": "metric",
+      "query": {
+        "numerator": "sum:request.latency{service:mental-health-bot,risk_level:HIGH}.as_count() - sum:request.latency{service:mental-health-bot,risk_level:HIGH,latency:>2000}.as_count()",
+        "denominator": "sum:request.latency{service:mental-health-bot,risk_level:HIGH}.as_count()"
+      },
+      "thresholds": [
+        {
+          "target": 99.0,
+          "target_display": "99%",
+          "timeframe": "7d",
+          "warning": 99.5
+        },
+        {
+          "target": 99.0,
+          "target_display": "99%",
+          "timeframe": "30d",
+          "warning": 99.5
+        }
+      ],
+      "tags": [
+        "service:mental-health-bot",
+        "slo_type:latency",
+        "priority:critical",
+        "team:engineering"
+      ]
+    },
+    {
+      "name": "Crisis Detection Accuracy - No False Negatives",
+      "description": "System must not miss true crisis signals. We prioritize zero false negatives even if it means some false positives.",
+      "type": "metric",
+      "query": {
+        "numerator": "sum:crisis.high_risk_detected{service:mental-health-bot}.as_count()",
+        "denominator": "sum:sessions.with_crisis_keywords{service:mental-health-bot}.as_count()"
+      },
+      "thresholds": [
+        {
+          "target": 95.0,
+          "target_display": "95%",
+          "timeframe": "7d",
+          "warning": 97.0
+        },
+        {
+          "target": 95.0,
+          "target_display": "95%",
+          "timeframe": "30d",
+          "warning": 97.0
+        }
+      ],
+      "tags": [
+        "service:mental-health-bot",
+        "slo_type:accuracy",
+        "priority:critical",
+        "team:ai-safety"
+      ]
+    },
+    {
+      "name": "Application Availability - 99.9% Uptime",
+      "description": "Mental health support must be available 24/7 with minimal downtime. Lives may depend on system availability.",
+      "type": "monitor",
+      "monitor_ids": [
+        12345
+      ],
+      "thresholds": [
+        {
+          "target": 99.9,
+          "target_display": "99.9%",
+          "timeframe": "7d",
+          "warning": 99.95
+        },
+        {
+          "target": 99.9,
+          "target_display": "99.9%",
+          "timeframe": "30d",
+          "warning": 99.95
+        }
+      ],
+      "tags": [
+        "service:mental-health-bot",
+        "slo_type:availability",
+        "priority:critical",
+        "team:sre"
+      ]
+    },
+    {
+      "name": "Error Rate - Less than 0.5%",
+      "description": "Errors during crisis conversations are unacceptable. Maintain error rate below 0.5% for all requests.",
+      "type": "metric",
+      "query": {
+        "numerator": "sum:llm.requests{service:mental-health-bot,status:success}.as_count()",
+        "denominator": "sum:llm.requests{service:mental-health-bot}.as_count()"
+      },
+      "thresholds": [
+        {
+          "target": 99.5,
+          "target_display": "99.5%",
+          "timeframe": "7d",
+          "warning": 99.7
+        },
+        {
+          "target": 99.5,
+          "target_display": "99.5%",
+          "timeframe": "30d",
+          "warning": 99.7
+        }
+      ],
+      "tags": [
+        "service:mental-health-bot",
+        "slo_type:reliability",
+        "priority:high",
+        "team:engineering"
+      ]
+    },
+    {
+      "name": "Cost Efficiency - Average cost per conversation under $0.05",
+      "description": "Maintain cost-effective operations while ensuring quality. Balance between Gemini Flash and Pro usage.",
+      "type": "metric",
+      "query": {
+        "numerator": "sum:llm.cost{service:mental-health-bot,cost:<0.05}.as_count()",
+        "denominator": "sum:llm.cost{service:mental-health-bot}.as_count()"
+      },
+      "thresholds": [
+        {
+          "target": 90.0,
+          "target_display": "90%",
+          "timeframe": "7d",
+          "warning": 85.0
+        },
+        {
+          "target": 90.0,
+          "target_display": "90%",
+          "timeframe": "30d",
+          "warning": 85.0
+        }
+      ],
+      "tags": [
+        "service:mental-health-bot",
+        "slo_type:cost",
+        "priority:medium",
+        "team:finance"
+      ]
+    },
+    {
+      "name": "Crisis Resource Delivery - 100% for HIGH risk",
+      "description": "Every HIGH risk conversation MUST receive crisis resources (988 Lifeline, etc.). This is non-negotiable.",
+      "type": "metric",
+      "query": {
+        "numerator": "sum:crisis.resources_provided{service:mental-health-bot,risk_level:HIGH}.as_count()",
+        "denominator": "sum:crisis.high_risk_detected{service:mental-health-bot}.as_count()"
+      },
+      "thresholds": [
+        {
+          "target": 100.0,
+          "target_display": "100%",
+          "timeframe": "7d",
+          "warning": 99.9
+        },
+        {
+          "target": 100.0,
+          "target_display": "100%",
+          "timeframe": "30d",
+          "warning": 99.9
+        }
+      ],
+      "tags": [
+        "service:mental-health-bot",
+        "slo_type:safety",
+        "priority:critical",
+        "team:ai-safety"
+      ]
+    }
+  ],
+  "notes": {
+    "rationale": "These SLOs are designed around the unique requirements of a mental health crisis detection system where human safety is paramount. We prioritize: 1) Fast response times during crises, 2) No missed crisis signals (false negatives), 3) High availability, 4) Error-free operation, 5) Guaranteed delivery of crisis resources.",
+    "review_schedule": "SLOs should be reviewed monthly and adjusted based on: crisis response outcomes, user feedback, system performance data, and consultation with mental health professionals.",
+    "priority_order": [
+      "Crisis Resource Delivery (100% - non-negotiable)",
+      "Crisis Detection Accuracy (95% - safety critical)",
+      "Application Availability (99.9% - always accessible)",
+      "Crisis Response Time (99% under 2s - user engagement)",
+      "Error Rate (99.5% - reliability)",
+      "Cost Efficiency (90% under $0.05 - sustainability)"
+    ]
+  }
+}
