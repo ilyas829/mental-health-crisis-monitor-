@@ -5,7 +5,6 @@ Monitors LLM conversations for crisis signals with Datadog observability
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 import uvicorn
@@ -14,37 +13,68 @@ import uuid
 import time
 import os
 
-# Datadog imports
-from ddtrace import tracer, patch_all
-from datadog import initialize, statsd
+# Configure Datadog for Cloud Run BEFORE any imports
+IS_CLOUD_RUN = os.environ.get('K_SERVICE') is not None  # Cloud Run sets K_SERVICE
+DD_API_KEY = os.environ.get('DD_API_KEY')
+DD_SERVICE = os.environ.get('DD_SERVICE', 'mental-health-bot')
+DD_ENV = os.environ.get('DD_ENV', 'production')
+
+if IS_CLOUD_RUN:
+    # Cloud Run: Send traces directly to Datadog (no agent)
+    os.environ['DD_TRACE_AGENT_HOSTNAME'] = ''
+    os.environ['DD_AGENT_HOST'] = ''
+    os.environ['DD_TRACE_AGENT_URL'] = 'https://trace.agent.datadoghq.com'
+    os.environ['DD_DOGlogger_URL'] = 'https://api.datadoghq.com'
+    os.environ['DD_LOGS_INJECTION'] = 'true'
+    os.environ['DD_TRACE_ENABLED'] = 'true'
+    os.environ['DD_SERVICE'] = DD_SERVICE
+    os.environ['DD_ENV'] = DD_ENV
+    
+    # Disable Doglogger (no agent in Cloud Run)
+    os.environ['DD_DOGlogger_DISABLE'] = 'true'
+
+# Now import Datadog
+from ddtrace import tracer, patch_all, config
+from datadog import initialize, api
 import logging
 
-# Custom modules
-from .vertex_ai_client import VertexAIClient
-from .crisis_detector import CrisisDetector
-from .datadog_telemetry import DatadogTelemetry
-
-# Initialize Datadog
+# Patch all for APM
 patch_all()
 
-options = {
-    'statsd_host': '127.0.0.1',
-    'statsd_port': 8125,
-}
-initialize(**options)
+# Configure tracer
+config.env = DD_ENV
+config.service = DD_SERVICE
+config.version = '1.0.0'
 
-# Setup logging with Datadog
-logging.basicConfig(level=logging.INFO)
+# Initialize Datadog API (for events only, no metrics)
+if DD_API_KEY:
+    dd_options = {
+        'api_key': DD_API_KEY,
+        'app_key': os.environ.get('DD_APP_KEY'),
+    }
+    initialize(**dd_options)
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
+logger.info(f"Starting in {'Cloud Run' if IS_CLOUD_RUN else 'Local'} mode")
 
 app = FastAPI(title="Mental Health Support Bot")
+
+# Import custom modules AFTER Datadog setup
+from app.vertex_ai_client import VertexAIClient
+from app.crisis_detector import CrisisDetector
+from app.datadog_telemetry import DatadogTelemetry
 
 # Initialize components
 vertex_client = VertexAIClient()
 crisis_detector = CrisisDetector()
 dd_telemetry = DatadogTelemetry()
 
-# In-memory session storage (use Redis in production)
+# In-memory session storage
 sessions = {}
 
 class Message(BaseModel):
@@ -62,7 +92,7 @@ class SessionMetrics(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     logger.info("Mental Health Crisis Monitor starting up")
-    statsd.increment('app.startup')
+    logger.info('app.startup')
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
@@ -354,6 +384,130 @@ async def root():
     """
     return HTMLResponse(content=html_content)
 
+# @app.post("/chat")
+# @tracer.wrap(service="mental-health-bot", resource="chat")
+# async def chat(message: Message):
+#     """Handle chat messages with full observability"""
+    
+#     start_time = time.time()
+#     session_id = message.session_id or str(uuid.uuid4())
+    
+#     # Initialize session if new
+#     if session_id not in sessions:
+#         sessions[session_id] = {
+#             "messages": [],
+#             "created_at": datetime.now(),
+#             "crisis_scores": [],
+#             "total_tokens": 0,
+#             "total_cost": 0.0
+#         }
+#         logger.info('sessions.created')
+    
+#     session = sessions[session_id]
+#     user_message = message.user_message
+    
+#     # Add span tags for Datadog APM
+#     span = tracer.current_span()
+#     if span:
+#         span.set_tag("session_id", session_id)
+#         span.set_tag("message_length", len(user_message))
+#         span.set_tag("message_count", len(session["messages"]))
+#         span.set_tag("service", "mental-health-bot")
+#         span.set_tag("env", "production")
+#         span.set_tag("crisis.score", crisis_analysis['crisis_score'])
+#         span.set_tag("risk_level", crisis_analysis['risk_level'])
+#         span.set_tag("session_id", session_id[:8])
+#         span.set_tag("llm.model", "gemini-2.0-flash-lite-001")
+    
+#     try:
+#         # Crisis detection BEFORE LLM call
+#         crisis_analysis = crisis_detector.analyze_message(
+#             user_message, 
+#             session["messages"]
+#         )
+        
+#         # Log crisis metrics
+#         logger.info('crisis.score', crisis_analysis['crisis_score'])
+#         logger.info('crisis.risk_level', crisis_analysis['risk_level_numeric'])
+        
+#         if span:
+#             span.set_tag("crisis_score", crisis_analysis['crisis_score'])
+#             span.set_tag("risk_level", crisis_analysis['risk_level'])
+        
+#         # Generate response using Vertex AI
+#         llm_start = time.time()
+#         llm_response = await vertex_client.generate_response(
+#             user_message=user_message,
+#             conversation_history=session["messages"],
+#             crisis_context=crisis_analysis
+#         )
+#         llm_latency = time.time() - llm_start
+        
+#         # Record LLM metrics
+#         logger.info('llm.latency', llm_latency * 1000)  # in ms
+#         logger.info('llm.requests')
+#         logger.info('llm.tokens.input', llm_response.get('input_tokens', 0))
+#         logger.info('llm.tokens.output', llm_response.get('output_tokens', 0))
+#         logger.info('llm.cost', llm_response.get('estimated_cost', 0))
+        
+#         # Update session
+#         session["messages"].append({
+#             "role": "user",
+#             "content": user_message,
+#             "timestamp": datetime.now().isoformat()
+#         })
+#         session["messages"].append({
+#             "role": "assistant",
+#             "content": llm_response['text'],
+#             "timestamp": datetime.now().isoformat()
+#         })
+#         session["crisis_scores"].append(crisis_analysis['crisis_score'])
+#         session["total_tokens"] += llm_response.get('total_tokens', 0)
+#         session["total_cost"] += llm_response.get('estimated_cost', 0)
+        
+#         # Create Datadog event if crisis detected
+#         if crisis_analysis['risk_level'] == 'HIGH':
+#             dd_telemetry.create_crisis_event(
+#                 session_id=session_id,
+#                 crisis_analysis=crisis_analysis,
+#                 user_message=user_message,
+#                 session_context=session
+#             )
+#             logger.info('crisis.high_risk_detected')
+        
+#         # Calculate response time
+#         total_latency = time.time() - start_time
+#         logger.info('request.latency', total_latency * 1000)
+        
+#         # Log structured event
+#         logger.info(
+#             "Chat interaction processed",
+#             extra={
+#                 "session_id": session_id,
+#                 "crisis_score": crisis_analysis['crisis_score'],
+#                 "risk_level": crisis_analysis['risk_level'],
+#                 "llm_latency_ms": llm_latency * 1000,
+#                 "total_latency_ms": total_latency * 1000,
+#                 "tokens_used": llm_response.get('total_tokens', 0)
+#             }
+#         )
+        
+#         return {
+#             "session_id": session_id,
+#             "response": llm_response['text'],
+#             "crisis_detected": crisis_analysis['risk_level'] in ['MEDIUM', 'HIGH'],
+#             "risk_level": crisis_analysis['risk_level'],
+#             "crisis_resources": crisis_analysis.get('resources', []) if crisis_analysis['risk_level'] == 'HIGH' else []
+#         }
+        
+#     except Exception as e:
+#         logger.error(f"Error processing chat: {str(e)}", exc_info=True)
+#         logger.info('errors.chat_processing')
+#         if span:
+#             span.set_tag("error", True)
+#             span.set_tag("error.message", str(e))
+#         raise HTTPException(status_code=500, detail="Error processing message")
+
 @app.post("/chat")
 @tracer.wrap(service="mental-health-bot", resource="chat")
 async def chat(message: Message):
@@ -371,7 +525,7 @@ async def chat(message: Message):
             "total_tokens": 0,
             "total_cost": 0.0
         }
-        statsd.increment('sessions.created')
+        logger.info('sessions.created')
     
     session = sessions[session_id]
     user_message = message.user_message
@@ -383,6 +537,9 @@ async def chat(message: Message):
         span.set_tag("message_length", len(user_message))
         span.set_tag("message_count", len(session["messages"]))
     
+    crisis_analysis = None  # SAFE INITIALIZATION
+    crisis_detected = False
+    
     try:
         # Crisis detection BEFORE LLM call
         crisis_analysis = crisis_detector.analyze_message(
@@ -390,13 +547,17 @@ async def chat(message: Message):
             session["messages"]
         )
         
-        # Log crisis metrics
-        statsd.gauge('crisis.score', crisis_analysis['crisis_score'])
-        statsd.gauge('crisis.risk_level', crisis_analysis['risk_level_numeric'])
-        
-        if span:
-            span.set_tag("crisis_score", crisis_analysis['crisis_score'])
+        # SAFE Datadog tags (after crisis_analysis exists)
+        if span and crisis_analysis:
+            span.set_tag("service", "mental-health-bot")
+            span.set_tag("env", "production")
+            span.set_tag("crisis.score", crisis_analysis['crisis_score'])
             span.set_tag("risk_level", crisis_analysis['risk_level'])
+            span.set_tag("llm.model", "gemini-2.0-flash-lite-001")
+        
+        # Log crisis metrics
+        logger.info('crisis.score', crisis_analysis['crisis_score'] if crisis_analysis else 0)
+        logger.info('crisis.risk_level', crisis_analysis['risk_level_numeric'] if crisis_analysis else 1)
         
         # Generate response using Vertex AI
         llm_start = time.time()
@@ -408,11 +569,11 @@ async def chat(message: Message):
         llm_latency = time.time() - llm_start
         
         # Record LLM metrics
-        statsd.histogram('llm.latency', llm_latency * 1000)  # in ms
-        statsd.increment('llm.requests')
-        statsd.gauge('llm.tokens.input', llm_response.get('input_tokens', 0))
-        statsd.gauge('llm.tokens.output', llm_response.get('output_tokens', 0))
-        statsd.gauge('llm.cost', llm_response.get('estimated_cost', 0))
+        logger.info('llm.latency', llm_latency * 1000)
+        logger.info('llm.requests')
+        logger.info('llm.tokens.input', llm_response.get('input_tokens', 0))
+        logger.info('llm.tokens.output', llm_response.get('output_tokens', 0))
+        logger.info('llm.cost', llm_response.get('estimated_cost', 0))
         
         # Update session
         session["messages"].append({
@@ -425,31 +586,32 @@ async def chat(message: Message):
             "content": llm_response['text'],
             "timestamp": datetime.now().isoformat()
         })
-        session["crisis_scores"].append(crisis_analysis['crisis_score'])
+        if crisis_analysis:
+            session["crisis_scores"].append(crisis_analysis['crisis_score'])
         session["total_tokens"] += llm_response.get('total_tokens', 0)
         session["total_cost"] += llm_response.get('estimated_cost', 0)
         
-        # Create Datadog event if crisis detected
-        if crisis_analysis['risk_level'] == 'HIGH':
+        # Create Datadog event if HIGH risk
+        if crisis_analysis and crisis_analysis['risk_level'] == 'HIGH':
             dd_telemetry.create_crisis_event(
                 session_id=session_id,
                 crisis_analysis=crisis_analysis,
                 user_message=user_message,
                 session_context=session
             )
-            statsd.increment('crisis.high_risk_detected')
+            logger.info('crisis.high_risk_detected')
+            crisis_detected = True
         
         # Calculate response time
         total_latency = time.time() - start_time
-        statsd.histogram('request.latency', total_latency * 1000)
+        logger.info('request.latency', total_latency * 1000)
         
-        # Log structured event
         logger.info(
             "Chat interaction processed",
             extra={
                 "session_id": session_id,
-                "crisis_score": crisis_analysis['crisis_score'],
-                "risk_level": crisis_analysis['risk_level'],
+                "crisis_score": crisis_analysis['crisis_score'] if crisis_analysis else 0,
+                "risk_level": crisis_analysis['risk_level'] if crisis_analysis else 'UNKNOWN',
                 "llm_latency_ms": llm_latency * 1000,
                 "total_latency_ms": total_latency * 1000,
                 "tokens_used": llm_response.get('total_tokens', 0)
@@ -459,18 +621,27 @@ async def chat(message: Message):
         return {
             "session_id": session_id,
             "response": llm_response['text'],
-            "crisis_detected": crisis_analysis['risk_level'] in ['MEDIUM', 'HIGH'],
-            "risk_level": crisis_analysis['risk_level'],
-            "crisis_resources": crisis_analysis.get('resources', []) if crisis_analysis['risk_level'] == 'HIGH' else []
+            "crisis_detected": crisis_detected,
+            "risk_level": crisis_analysis['risk_level'] if crisis_analysis else 'UNKNOWN',
+            "crisis_resources": crisis_analysis.get('resources', []) if crisis_analysis and crisis_analysis['risk_level'] == 'HIGH' else []
         }
         
     except Exception as e:
         logger.error(f"Error processing chat: {str(e)}", exc_info=True)
-        statsd.increment('errors.chat_processing')
+        logger.info('errors.chat_processing')
         if span:
             span.set_tag("error", True)
             span.set_tag("error.message", str(e))
-        raise HTTPException(status_code=500, detail="Error processing message")
+        
+        # SAFE fallback response
+        return {
+            "session_id": session_id,
+            "response": "I'm having trouble processing your message right now, but I'm here to listen. Could you try rephrasing?",
+            "crisis_detected": False,
+            "risk_level": "UNKNOWN",
+            "crisis_resources": []
+        }
+
 
 @app.get("/metrics")
 async def get_metrics():
